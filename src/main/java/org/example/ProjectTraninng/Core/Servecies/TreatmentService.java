@@ -1,8 +1,13 @@
 package org.example.ProjectTraninng.Core.Servecies;
 
 import lombok.RequiredArgsConstructor;
-import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.Converters.DepartmentMapper;
+import org.example.ProjectTraninng.Common.Converters.DoctorMapper;
+import org.example.ProjectTraninng.Common.Converters.PatientMapper;
+import org.example.ProjectTraninng.Common.Converters.TreatmentMapper;
+import org.example.ProjectTraninng.Common.DTOs.*;
 import org.example.ProjectTraninng.Common.Entities.*;
+import org.example.ProjectTraninng.Common.Enums.Role;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
 import org.example.ProjectTraninng.Core.Repsitories.*;
 import org.example.ProjectTraninng.WebApi.Exceptions.UserNotFoundException;
@@ -14,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
@@ -66,10 +72,10 @@ public class TreatmentService {
         treatment.setDoctor(request.getDoctor());
         treatment.setDiseaseDescription(request.getDiseaseDescription());
         treatment.setNote(request.getNote());
-        for (PatientMedicine patientMedicine : request.getPatientMedicines()) {
-            patientMedicine.setTreatment(treatment);
-        }
-        treatment.setPatientMedicines(request.getPatientMedicines());
+//        for (PatientMedicine patientMedicine : request.getPatientMedicines()) {
+//            patientMedicine.setTreatment(treatment);
+//        }
+//        treatment.setPatientMedicines(request.getPatientMedicines());
 
         treatmentRepository.save(treatment);
         return GeneralResponse.builder().message("Treatment updated successfully").build();
@@ -121,7 +127,7 @@ public class TreatmentService {
                 .build();
     }
     @Transactional
-    public PaginationDTO<Treatment> getAllTreatments(int page, int size,List<Long> patientIds ,Long patientId,String search) {
+    public PaginationDTO<TreatmentDTO> getAllTreatments(int page, int size, List<Long> patientIds, Long patientId, String search, User user) {
         if (page < 1) {
             page = 1;
         }
@@ -131,24 +137,79 @@ public class TreatmentService {
         if (search != null && search.isEmpty()) {
             search = null;
         }
-        if(patientId != null && patientId == 0){
+        if (patientId != null && patientId == 0) {
             patientId = null;
         }
+
+        Long doctorId = null;
+        if (user.getRole() == Role.DOCTOR) {  // Ensure this matches your actual role enum
+            doctorId = user.getDoctor().getId(); // Retrieve doctor's ID
+        }
+
         Pageable pageable = PageRequest.of(page - 1, size);
-        Page<Treatment> treatments = treatmentRepository.findAll(pageable,patientIds,patientId,search);
-        PaginationDTO<Treatment> paginationDTO = new PaginationDTO<>();
+        Page<Treatment> treatments = treatmentRepository.findAll(pageable, patientIds, patientId, search, doctorId);
+        List<TreatmentDTO> treatmentDTOs = treatments.getContent().stream()
+                .map(TreatmentMapper::toDTO)
+                .collect(Collectors.toList());
+
+        PaginationDTO<TreatmentDTO> paginationDTO = new PaginationDTO<>();
         paginationDTO.setTotalElements(treatments.getTotalElements());
         paginationDTO.setTotalPages(treatments.getTotalPages());
         paginationDTO.setSize(treatments.getSize());
         paginationDTO.setNumber(treatments.getNumber() + 1);
         paginationDTO.setNumberOfElements(treatments.getNumberOfElements());
-        paginationDTO.setContent(treatments.getContent());
+        paginationDTO.setContent(treatmentDTOs);
+
+        return paginationDTO;
+    }
+
+
+    @Transactional
+    public PaginationDTO<PatientDTO> getAllPatient(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Patients> treatments = treatmentRepository.findAllPatient(pageable);
+        List<PatientDTO> departmentDTOs = treatments.getContent().stream()
+                .map(PatientMapper::toDTO)
+                .collect(Collectors.toList());
+        PaginationDTO<PatientDTO> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(treatments.getTotalElements());
+        paginationDTO.setTotalPages(treatments.getTotalPages());
+        paginationDTO.setSize(treatments.getSize());
+        paginationDTO.setNumber(treatments.getNumber() + 1);
+        paginationDTO.setNumberOfElements(treatments.getNumberOfElements());
+        paginationDTO.setContent(departmentDTOs);
 
         return paginationDTO;
     }
 
     @Transactional
-    public Page<Treatment> getAllTreatmentsForPatient(Long patientId,int page ,int size) throws UserNotFoundException {
+    public PaginationDTO<DoctorDTO> getAllDoctor(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Doctor> treatments = treatmentRepository.findAllDoctor(pageable);
+        List<DoctorDTO> departmentDTOs = treatments.getContent().stream()
+                .map(DoctorMapper::toDTO)
+                .collect(Collectors.toList());
+        PaginationDTO<DoctorDTO> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(treatments.getTotalElements());
+        paginationDTO.setTotalPages(treatments.getTotalPages());
+        paginationDTO.setSize(treatments.getSize());
+        paginationDTO.setNumber(treatments.getNumber() + 1);
+        paginationDTO.setNumberOfElements(treatments.getNumberOfElements());
+        paginationDTO.setContent(departmentDTOs);
+
+        return paginationDTO;
+    }
+
+    @Transactional
+    public PaginationDTO<TreatmentDTO> getAllTreatmentsForPatient(Long patientId,int page ,int size) throws UserNotFoundException {
         patientRepository.findById(patientId).orElseThrow(
                 () -> new UserNotFoundException("Patient not found"));
         if (page < 1) {
@@ -156,6 +217,21 @@ public class TreatmentService {
         }
         Pageable pageable = PageRequest.of(page - 1, size);
 
-        return treatmentRepository.findAllByPatientId(patientId, pageable);
+
+        Page<Treatment> treatments  = treatmentRepository.findAllByPatientId(patientId, pageable);
+
+        List<TreatmentDTO> treatmentDTOs = treatments.getContent().stream()
+                .map(TreatmentMapper::toDTO)
+                .collect(Collectors.toList());
+
+        PaginationDTO<TreatmentDTO> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(treatments.getTotalElements());
+        paginationDTO.setTotalPages(treatments.getTotalPages());
+        paginationDTO.setSize(treatments.getSize());
+        paginationDTO.setNumber(treatments.getNumber() + 1);
+        paginationDTO.setNumberOfElements(treatments.getNumberOfElements());
+        paginationDTO.setContent(treatmentDTOs);
+
+        return paginationDTO;
     }
 }

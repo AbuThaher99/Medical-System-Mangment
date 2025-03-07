@@ -1,5 +1,6 @@
 package org.example.ProjectTraninng.WebApi.config;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -61,6 +62,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT format: " + jwt, e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 Unauthorized
+            response.getWriter().write("Invalid JWT format");
+            return;
+        } catch (ExpiredJwtException e) {
+            logger.error("JWT token expired: " + jwt, e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 Unauthorized
+            response.getWriter().write("JWT token expired");
+            return;
+        } catch (Exception e) {
+            logger.error("Error processing JWT token: " + jwt, e);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 Unauthorized
+            response.getWriter().write("Error processing JWT token");
+            return;
         }
 
         filterChain.doFilter(request, response);

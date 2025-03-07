@@ -1,6 +1,7 @@
 package org.example.ProjectTraninng.Core.Repsitories;
 
 import org.example.ProjectTraninng.Common.Entities.Medicine;
+import org.example.ProjectTraninng.Common.Entities.Supplier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +20,9 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
     @Query("select m from Medicine m where m.id = :id and m.isDeleted = false")
     Optional<Medicine> findById(@Param("id") Long id);
 
+    @Query("select m from Medicine m where m.id = :id and m.isDeleted = true ")
+    Optional<Medicine> findByIdAndDeleted(@Param("id") Long id);
+
     @Query("select m from Medicine m where m.isDeleted = false")
     List<Medicine> findAll();
 
@@ -32,5 +36,15 @@ public interface MedicineRepository extends JpaRepository<Medicine, Long> {
 
     @Query("select m from Medicine m where m.name = :name and m.supplier.id = :supplierId and m.isDeleted = false")
     Optional<Medicine> findByNameAndSupplierId(@Param("name") String name,@Param("supplierId") Long supplierId);
+    @Query("select m FROM Medicine m where m.isDeleted = true and " +
+            "(:search IS NULL or :search = '' or " +
+            "lower(m.name) LIKE lower(concat('%', :search, '%')) or " +
+            "cast(m.buyPrice AS string) LIKE concat('%', :search, '%') or " +
+            "cast(m.purchasePrice AS string) LIKE concat('%', :search, '%') or " +
+            "cast(m.expirationDate AS string) LIKE concat('%', :search, '%'))")
+    Page<Medicine> findDeletedAll(Pageable pageable, @Param("search") String search);
 
+    // fetch all suppliers
+    @Query("SELECT s FROM Supplier s WHERE s.isDeleted = false")
+    Page<Supplier> findAllSuppliers(Pageable pageable);
 }

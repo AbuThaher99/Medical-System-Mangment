@@ -2,6 +2,8 @@ package org.example.ProjectTraninng.WebApi.Controllers.Patient.Treatment;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.TreatmentDTO;
 import org.example.ProjectTraninng.Common.Entities.Notification;
 import org.example.ProjectTraninng.Common.Entities.Treatment;
 import org.example.ProjectTraninng.Common.Entities.User;
@@ -24,19 +26,21 @@ public class PatientTreatmentController extends SessionManagement {
     private final NotificationService notificationService;
 
     @GetMapping("")
-    public Page<Treatment> getTreatment(@RequestParam(defaultValue = "") Long patientId,
-                                        @RequestParam(defaultValue = "1") int page,
-                                        @RequestParam(defaultValue = "10") int size,
-                                        HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public PaginationDTO<TreatmentDTO> getTreatment(@RequestParam(defaultValue = "1") int page,
+                                                    @RequestParam(defaultValue = "10") int size,
+                                                    HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
         validateLoggedInAll(user);
-      return   treatmentService.getAllTreatmentsForPatient( patientId, page, size);
+      return   treatmentService.getAllTreatmentsForPatient( user.getPatient().getId(), page, size);
     }
 
-    @GetMapping("/patientNotifications/{patientId}")
-    public List<Notification> getNotificationsTreatment(@PathVariable Long patientId) {
-        return notificationService.getUnreadNotifications(patientId);
+    @GetMapping("/patientNotifications")
+    public List<Notification> getNotificationsTreatment( HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAll(user);
+        return notificationService.getUnreadNotifications(user.getPatient().getId());
     }
 
     @PostMapping("/read/{notificationId}")

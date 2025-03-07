@@ -15,11 +15,15 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Bucket;
+import com.google.firebase.cloud.StorageClient;
 @Component
 public class PdfGenerator {
 
@@ -44,15 +48,23 @@ public class PdfGenerator {
         Map<String, Double> totalAmountByMonth = salaryPaymentService.getTotalAmountByMonth(payments);
         double totalAmount = salaryPaymentService.getTotalAmount(payments);
         Long time = System.currentTimeMillis();
-        String pdfFilePath = pdfFiles + "SalaryPaymentsReport" + time + ".pdf";
-        String chartFilePath = chartFiles + "chart" + time + ".png";
 
+        // Define file names
+        String pdfFileName = "SalaryPaymentsReport" + time + ".pdf";
+        String chartFileName = "chart" + time + ".png";
+
+        // Firebase storage paths
+        String firebasePdfPath = "medical/Report/" + pdfFileName;
+        String firebaseChartPath = "medical/Chart/" + chartFileName;
+
+        // Generate chart image locally
+        String chartFilePath = chartFiles + chartFileName;
         chartGenerator.generateChart(totalAmountByMonth, chartFilePath);
 
+        // Generate PDF
         Document document = new Document(PageSize.A4, 36, 36, 100, 36);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = PdfWriter.getInstance(document, baos);
-
         writer.setPageEvent(new HeaderFooterPageEvent());
 
         document.open();
@@ -72,12 +84,14 @@ public class PdfGenerator {
         List<User> users = salaryPaymentService.getUsersByRoles(roles);
         document.add(new Paragraph("Users Information:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
         document.add(new Paragraph(" "));
+
         PdfPTable userTable = new PdfPTable(6);
         userTable.setWidthPercentage(100);
         userTable.setHorizontalAlignment(Element.ALIGN_CENTER);
         userTable.setSpacingBefore(10);
         userTable.setSpacingAfter(10);
 
+        // Add table headers
         addColoredHeaderCell(userTable, "ID", hexToBaseColor(headerBgColor), hexToBaseColor(headerTextColor));
         addColoredHeaderCell(userTable, "First Name", hexToBaseColor(headerBgColor), hexToBaseColor(headerTextColor));
         addColoredHeaderCell(userTable, "Last Name", hexToBaseColor(headerBgColor), hexToBaseColor(headerTextColor));
@@ -91,8 +105,10 @@ public class PdfGenerator {
         }
         document.add(userTable);
 
+        // Total amount by month table
         document.add(new Paragraph("Total Amount by Month:", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)));
         document.add(new Paragraph(" "));
+
         PdfPTable monthTable = new PdfPTable(2);
         monthTable.setWidthPercentage(80);
         monthTable.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -106,29 +122,48 @@ public class PdfGenerator {
         }
         document.add(monthTable);
 
+        // Add chart image
         Image chartImage = Image.getInstance(chartFilePath);
         chartImage.setAlignment(Image.ALIGN_CENTER);
         chartImage.scaleToFit(PageSize.A4.getWidth() - 72, PageSize.A4.getHeight() - 72);
         document.add(chartImage);
 
-        fileDataRepository.save(FileData.builder()
-                .name("chart" + time + ".png")
-                .type("image/png")
-                .filePath(chartFilePath).build());
-
-        fileDataRepository.save(FileData.builder()
-                .name("SalaryPaymentsReport" + time + ".pdf")
-                .type("application/pdf")
-                .filePath(pdfFilePath).build());
-
         document.close();
-        try (FileOutputStream fos = new FileOutputStream(pdfFilePath)) {
-            baos.writeTo(fos);
-        }
+
+        // Upload files to Firebase
+        Bucket bucket = StorageClient.getInstance().bucket();
+
+        // Upload chart
+        byte[] chartData = Files.readAllBytes(Paths.get(chartFilePath));
+        Blob chartBlob = bucket.create(firebaseChartPath, chartData, "image/png");
+
+        // Upload PDF
+        byte[] pdfData = baos.toByteArray();
+        Blob pdfBlob = bucket.create(firebasePdfPath, pdfData, "application/pdf");
+
+        // Save file data to the database
+        fileDataRepository.save(FileData.builder()
+                .name(pdfFileName)
+                .type("application/pdf")
+                .filePath(firebasePdfPath)
+                .build());
+
+        fileDataRepository.save(FileData.builder()
+                .name(chartFileName)
+                .type("image/png")
+                .filePath(firebaseChartPath)
+                .build());
+
+        // Generate download URLs
+        String baseUrl = "https://firebasestorage.googleapis.com/v0/b/graduationproject-df4b7.appspot.com/o/";
+        String pdfDownloadUrl = baseUrl + firebasePdfPath.replace("/", "%2F") + "?alt=media";
+        String chartDownloadUrl = baseUrl + firebaseChartPath.replace("/", "%2F") + "?alt=media";
+
         return GeneralResponse.builder()
-                .message(pdfFilePath)
+                .message(pdfDownloadUrl)
                 .build();
     }
+
 
     private String getTotalSalary(User user) {
         List<SalaryPayment> payments = user.getSalaryId();
@@ -250,8 +285,10 @@ public class PdfGenerator {
     public GeneralResponse generatePdfForTreatments(String headerBgColor, String headerTextColor, String tableRowColor1, String tableRowColor2) throws Exception {
         List<Treatment> treatments = treatmentRepository.getAllTreatments();
         Long time = System.currentTimeMillis();
-        String pdfFilePath = pdfFiles + "Treatments Report" + time + ".pdf";
+        String fileName = "Treatments_Report_" + time + ".pdf";
+        String pdfFilePath = pdfFiles + fileName;
 
+        // Step 1: Generate PDF locally
         Document document = new Document(PageSize.A4, 36, 36, 100, 36);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         PdfWriter writer = PdfWriter.getInstance(document, baos);
@@ -271,6 +308,7 @@ public class PdfGenerator {
         treatmentTable.setSpacingBefore(10);
         treatmentTable.setSpacingAfter(10);
 
+        // Add table headers
         addColoredHeaderCell(treatmentTable, "ID", hexToBaseColor(headerBgColor), hexToBaseColor(headerTextColor));
         addColoredHeaderCell(treatmentTable, "Treatment Date", hexToBaseColor(headerBgColor), hexToBaseColor(headerTextColor));
         addColoredHeaderCell(treatmentTable, "Disease Description", hexToBaseColor(headerBgColor), hexToBaseColor(headerTextColor));
@@ -287,6 +325,7 @@ public class PdfGenerator {
             addColoredRow(treatmentTable, treatment, totalCost, rowIndex++, hexToBaseColor(tableRowColor1), hexToBaseColor(tableRowColor2));
         }
         document.add(treatmentTable);
+
         document.add(new Paragraph(" "));
         double totalAmount = treatments.stream()
                 .mapToDouble(treatment -> {
@@ -295,25 +334,33 @@ public class PdfGenerator {
                         totalCost += pm.getPrice() * pm.getQuantity();
                     }
                     return totalCost;
-                })
-                .sum();
+                }).sum();
 
-        Paragraph totalAmountParagraph = new Paragraph("Total Profits: $" + totalAmount , FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
+        Paragraph totalAmountParagraph = new Paragraph("Total Profits: $" + totalAmount, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16));
         totalAmountParagraph.setAlignment(Element.ALIGN_LEFT);
-
         document.add(totalAmountParagraph);
 
-        fileDataRepository.save(FileData.builder()
-                .name("TreatmentsReport" + time + ".pdf")
-                .type("application/pdf")
-                .filePath(pdfFilePath).build());
-
         document.close();
-        try (FileOutputStream fos = new FileOutputStream(pdfFilePath)) {
-            baos.writeTo(fos);
-        }
+
+        // Step 2: Upload to Firebase Storage
+        String firebasePath = "medical/Report/" + fileName;
+        Bucket bucket = StorageClient.getInstance().bucket();
+        Blob blob = bucket.create(firebasePath, baos.toByteArray(), "application/pdf");
+
+        // Generate a Firebase download URL
+        final String baseUrl = "https://firebasestorage.googleapis.com/v0/b/graduationproject-df4b7.appspot.com/o/";
+        String downloadUrl = baseUrl + "medical%2FReport%2F" + fileName + "?alt=media";
+
+        // Step 3: Store file information in FileData repository
+        fileDataRepository.save(FileData.builder()
+                .name(fileName)
+                .type("application/pdf")
+                .filePath(downloadUrl)  // Store the Firebase URL
+                .build());
+
+        // Return success response with the download URL
         return GeneralResponse.builder()
-                .message(pdfFilePath)
+                .message("File successfully uploaded to Firebase. Download URL: " + downloadUrl)
                 .build();
     }
 

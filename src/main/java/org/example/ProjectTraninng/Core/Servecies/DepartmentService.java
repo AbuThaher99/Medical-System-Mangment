@@ -1,6 +1,8 @@
 package org.example.ProjectTraninng.Core.Servecies;
 
 import lombok.RequiredArgsConstructor;
+import org.example.ProjectTraninng.Common.Converters.DepartmentMapper;
+import org.example.ProjectTraninng.Common.DTOs.DepartmentDTO;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
 import org.example.ProjectTraninng.Common.Entities.Department;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
@@ -15,7 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -80,19 +84,59 @@ public class DepartmentService {
     }
 
     @Transactional
-    public PaginationDTO<Department> getAllDepartment(int page, int size , String search) {
+    public PaginationDTO<DepartmentDTO> getAllDepartment(int page, int size, String search) {
         if (page < 1) {
             page = 1;
         }
         Pageable pageable = PageRequest.of(page - 1, size);
-        Page<Department> departments = departmentRepository.findAll(pageable,search);
-        PaginationDTO<Department> paginationDTO = new PaginationDTO<>();
+        Page<Department> departments = departmentRepository.findAll(pageable, search);
+
+        // Map Department entities to DepartmentDTOs
+        List<DepartmentDTO> departmentDTOs = departments.getContent().stream()
+                .map(DepartmentMapper::toDTO)
+                .collect(Collectors.toList());
+
+        // Create PaginationDTO
+        PaginationDTO<DepartmentDTO> paginationDTO = new PaginationDTO<>();
         paginationDTO.setTotalElements(departments.getTotalElements());
         paginationDTO.setTotalPages(departments.getTotalPages());
         paginationDTO.setSize(departments.getSize());
         paginationDTO.setNumber(departments.getNumber() + 1);
         paginationDTO.setNumberOfElements(departments.getNumberOfElements());
-        paginationDTO.setContent(departments.getContent());
+        paginationDTO.setContent(departmentDTOs);
+
         return paginationDTO;
+    }
+
+    @Transactional
+    public PaginationDTO<DepartmentDTO> getAllDeletedDepartment(int page, int size, String search) {
+        if (page < 1) {
+            page = 1;
+        }
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Department> departments = departmentRepository.findDeletedAll(pageable, search);
+
+        // Map Department entities to DepartmentDTOs
+        List<DepartmentDTO> departmentDTOs = departments.getContent().stream()
+                .map(DepartmentMapper::toDTO)
+                .collect(Collectors.toList());
+
+        // Create PaginationDTO
+        PaginationDTO<DepartmentDTO> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(departments.getTotalElements());
+        paginationDTO.setTotalPages(departments.getTotalPages());
+        paginationDTO.setSize(departments.getSize());
+        paginationDTO.setNumber(departments.getNumber() + 1);
+        paginationDTO.setNumberOfElements(departments.getNumberOfElements());
+        paginationDTO.setContent(departmentDTOs);
+
+        return paginationDTO;
+    }
+
+    public void restoreDepartment(Long departmentId) throws UserNotFoundException {
+        var department = departmentRepository.findDeletedById(departmentId)
+                .orElseThrow(() -> new UserNotFoundException("Department not found"));
+        department.setDeleted(false);
+        departmentRepository.save(department);
     }
 }

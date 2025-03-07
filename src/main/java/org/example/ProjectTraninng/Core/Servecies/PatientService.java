@@ -4,9 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.example.ProjectTraninng.Common.Converters.PatientMapper;
+import org.example.ProjectTraninng.Common.Converters.TreatmentMapper;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.PatientDTO;
+import org.example.ProjectTraninng.Common.DTOs.TreatmentDTO;
 import org.example.ProjectTraninng.Common.Entities.*;
-import org.example.ProjectTraninng.Common.Enums.BloodTypes;
 import org.example.ProjectTraninng.Common.Enums.Role;
 import org.example.ProjectTraninng.Common.Enums.TokenType;
 import org.example.ProjectTraninng.Common.Responses.AuthenticationResponse;
@@ -26,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -138,6 +142,23 @@ public class PatientService {
         }
         return patients;
     }
+
+    @Transactional
+    public PatientDTO getPatientID(Long id) throws UserNotFoundException {
+
+        Optional<Patients> patients = patientRepository.findByUserId(id);
+
+        if (patients.isEmpty()) {
+            throw new UserNotFoundException("Patient not found");
+        }
+        PatientDTO patientDTO = PatientDTO.builder()
+                .id(patients.get().getId())
+                .age(patients.get().getAge())
+                .bloodType(patients.get().getBloodType().getType())
+                .user(patients.get().getUser())
+                .build();
+        return patientDTO;
+    }
     @Transactional
     public GeneralResponse deletePatientByFirstName(String email) throws UserNotFoundException {
         Patients patient = patientRepository.findByUserEmail(email)
@@ -194,6 +215,7 @@ public class PatientService {
             user.setFirstName(request.getUser().getFirstName());
             user.setLastName(request.getUser().getLastName());
             patient.setAge(request.getAge());
+            patient.setBloodType(request.getBloodType());
             user.setAddress(request.getUser().getAddress());
             user.setPhone(request.getUser().getPhone());
             user.setDateOfBirth(request.getUser().getDateOfBirth());
@@ -204,7 +226,7 @@ public class PatientService {
     }
 
     @Transactional
-    public PaginationDTO<Patients> getAllPatients(int page, int size , String search , List<Long> doctorIds) {
+    public PaginationDTO<PatientDTO> getAllPatients(int page, int size , String search , List<Long> doctorIds) {
         if(doctorIds != null && doctorIds.isEmpty()){
             doctorIds = null;
         }
@@ -216,17 +238,19 @@ public class PatientService {
         }
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<Patients> patients = patientRepository.findAll(pageable , search , doctorIds);
-        PaginationDTO<Patients> paginationDTO = new PaginationDTO<>();
+        List<PatientDTO> departmentDTOs = patients.getContent().stream()
+                .map(PatientMapper::toDTO)
+                .collect(Collectors.toList());
+
+        PaginationDTO<PatientDTO> paginationDTO = new PaginationDTO<>();
         paginationDTO.setTotalElements(patients.getTotalElements());
         paginationDTO.setTotalPages(patients.getTotalPages());
         paginationDTO.setSize(patients.getSize());
         paginationDTO.setNumber(patients.getNumber() + 1);
         paginationDTO.setNumberOfElements(patients.getNumberOfElements());
-        paginationDTO.setContent(patients.getContent());
+        paginationDTO.setContent(departmentDTOs);
 
         return paginationDTO;
     }
-
-
 
 }

@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 
 import org.example.ProjectTraninng.Common.DTOs.LoginDTO;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.UserDTO;
+import org.example.ProjectTraninng.Common.DTOs.UserUpdateDTO;
 import org.example.ProjectTraninng.Common.Responses.AuthenticationResponse;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
 import org.example.ProjectTraninng.Core.Servecies.AuthenticationService;
@@ -39,10 +41,10 @@ public class UserController extends SessionManagement {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<GeneralResponse> updateuser(@RequestBody @Valid User request,@PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public ResponseEntity<GeneralResponse> updateuser(@RequestBody @Valid UserUpdateDTO request, @PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
-        validateLoggedInAdmin(user);
+        validateLoggedInAllUser(user);
         return ResponseEntity.ok(service.UpdateUser(request,id));
     }
 
@@ -55,7 +57,7 @@ public class UserController extends SessionManagement {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getuser(@PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public ResponseEntity<Object> getuser(@PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
         validateLoggedInAdmin(user);
@@ -73,6 +75,17 @@ public class UserController extends SessionManagement {
         return service.GetAllUsers(page, size,search,role);
     }
 
+    @GetMapping("/deleted")
+    public PaginationDTO<User> getalldeleted(@RequestParam(defaultValue = "1",required = false) int page,
+                                           @RequestParam(defaultValue = "10",required = false) int size,
+                                           @RequestParam(defaultValue = "",required = false) String search,
+                                           @RequestParam(defaultValue = "",required = false) Role role, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return service.getAllDeletedUsers(page, size,search,role);
+    }
+
     @GetMapping("byRole/{role}")
     public Page<User> getAllUsersByRole(@PathVariable Role role,@RequestParam(defaultValue = "0") int page,
     @RequestParam(defaultValue = "10") int size, HttpServletRequest httpServletRequest) throws UserNotFoundException {
@@ -81,7 +94,14 @@ public class UserController extends SessionManagement {
          validateLoggedInAdmin(user);
         return service.getAllUsersByRole(role, page, size);
     }
-
+    // make a query to restore the user when the user is deleted equal to true
+    @PostMapping ("/restore/{id}")
+    public ResponseEntity<GeneralResponse> restoreUser(@PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return ResponseEntity.ok(service.restoreUser(id));
+    }
 
     @PostMapping("/changePassword")
     public ResponseEntity<AuthenticationResponse> changePassword(@RequestParam String email,
@@ -93,6 +113,42 @@ public class UserController extends SessionManagement {
         validateLoggedInAllUser(user);
         AuthenticationResponse response = service.ChangePassword(email, oldPassword, newPassword);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/doctors")
+    public PaginationDTO<User> getAllDoctors(@RequestParam(defaultValue = "1") int page,
+                                    @RequestParam(defaultValue = "10") int size,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return service.findAllDoctors(page, size);
+    }
+
+    @GetMapping("/secretaries")
+    public PaginationDTO<User> getAllSecretaries(@RequestParam(defaultValue = "1") int page,
+                                                 @RequestParam(defaultValue = "10") int size,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return service.findAllSecretaries(page, size);
+    }
+
+    @GetMapping("/doctorsUpdated")
+    public PaginationDTO<User> getAllDoctorsUpdated(@RequestParam(defaultValue = "1") int page,
+                                             @RequestParam(defaultValue = "10") int size,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return service.findAllDoctorsUpdated(page, size);
+    }
+
+    @GetMapping("/secretariesUpdated")
+    public PaginationDTO<User> getAllSecretariesUpdated(@RequestParam(defaultValue = "1") int page,
+                                                 @RequestParam(defaultValue = "10") int size,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return service.findAllSecretariesUpdated(page, size);
     }
 
 }

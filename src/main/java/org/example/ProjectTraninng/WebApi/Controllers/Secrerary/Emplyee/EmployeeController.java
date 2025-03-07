@@ -21,18 +21,18 @@ public class EmployeeController extends SessionManagement {
     private final AuthenticationService authenticationService;
 
    @PostMapping("/CheckIn")
-    public GeneralResponse CheckIn(@RequestParam(defaultValue = "") Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public GeneralResponse CheckIn(@RequestParam(defaultValue = "") String Email, HttpServletRequest httpServletRequest) throws UserNotFoundException {
        String token = authenticationService.extractToken(httpServletRequest);
        User user = authenticationService.extractUserFromToken(token);
        validateLoggedInCheckInOut(user);
-        return authenticationService.CheckIn(id, user.getId());
+        return authenticationService.CheckIn(Email, user.getId());
     }
 
     @PostMapping("/CheckOut")
-    public GeneralResponse CheckOut(@RequestParam(defaultValue = "")Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public GeneralResponse CheckOut(@RequestParam(defaultValue = "")String Email, HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = authenticationService.extractToken(httpServletRequest);
         User user = authenticationService.extractUserFromToken(token);
         validateLoggedInCheckInOut(user);
-        return authenticationService.checkOut(id, user.getId());
+        return authenticationService.checkOut(Email, user.getId());
     }
 }

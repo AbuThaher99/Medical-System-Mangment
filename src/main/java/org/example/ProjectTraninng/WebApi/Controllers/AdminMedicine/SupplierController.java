@@ -59,12 +59,29 @@ public class SupplierController extends SessionManagement {
     public PaginationDTO<Supplier> getAllSuppliers(@RequestParam(defaultValue = "1") int page,
                                                    @RequestParam(defaultValue = "10") int size,
                                                    @RequestParam(defaultValue = "",required = false) String search ,
-                                                   @RequestParam(defaultValue = "",required = false) CompanyNames companyName ,
+                                                   @RequestParam(defaultValue = "",required = false) String companyName ,
                                                    HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
         validateLoggedInWarehouseEmployee(user);
         return supplierService.getAllSuppliers( page, size, search, companyName);
     }
-
+    @GetMapping("/deleted")
+    public PaginationDTO<Supplier> getAllDeletedSuppliers(@RequestParam(defaultValue = "1") int page,
+                                                   @RequestParam(defaultValue = "10") int size,
+                                                   @RequestParam(defaultValue = "",required = false) String search ,
+                                                   @RequestParam(defaultValue = "",required = false) String companyName ,
+                                                   HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInWarehouseEmployee(user);
+        return supplierService.getAllDeletedSuppliers( page, size, search, companyName);
+    }
+    @PutMapping("/restore/{id}")
+    public ResponseEntity<GeneralResponse> restoreSupplier(@PathVariable Long id , HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInWarehouseEmployee(user);
+        return ResponseEntity.ok(supplierService.restoreSupplier(id));
+    }
 }

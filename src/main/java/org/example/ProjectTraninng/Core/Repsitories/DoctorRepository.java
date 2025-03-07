@@ -4,6 +4,7 @@ package org.example.ProjectTraninng.Core.Repsitories;
 
 
 import org.example.ProjectTraninng.Common.Entities.Doctor;
+import org.example.ProjectTraninng.Common.Entities.User;
 import org.example.ProjectTraninng.Common.Enums.Specialization;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,4 +30,8 @@ public interface DoctorRepository extends JpaRepository<Doctor, Long> {
     Page<Doctor> findAll(Pageable pageable, @Param("search") String search, @Param("specialization") Specialization specialization);
     @Query("SELECT d FROM Doctor d WHERE d.user.isDeleted = false")
     Page<Doctor> findAll(Pageable pageable);
+
+    // make a query to get the doctor by the user id
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.doctor WHERE u.id = :userId AND u.isDeleted = false")
+    Optional<User> findUserWithDoctorById(@Param("userId") Long userId);
 }

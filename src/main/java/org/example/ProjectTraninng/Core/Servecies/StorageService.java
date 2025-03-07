@@ -1,5 +1,8 @@
 package org.example.ProjectTraninng.Core.Servecies;
 
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.Bucket;
+import com.google.firebase.cloud.StorageClient;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.example.ProjectTraninng.Common.Entities.*;
@@ -9,7 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,41 +35,63 @@ public class StorageService {
 
     @Autowired
     private UserRepository userRepository;
-    String imageFolder = "C:\\Users\\moham\\Desktop\\ProjectFinalTraninng\\projecttraning\\src\\main\\resources\\Images\\";
-    String excelFolder = "C:\\Users\\moham\\Desktop\\ProjectFinalTraninng\\projecttraning\\src\\main\\resources\\Excels\\";
+
+    final String baseUrl = "https://firebasestorage.googleapis.com/v0/b/graduationproject-df4b7.appspot.com/o/";
+
     public String uploadImageToFileSystem(MultipartFile file) throws IOException {
-        String filePath=imageFolder+file.getOriginalFilename();
+        StringBuilder fileUrl = new StringBuilder();
 
-        FileData fileData=fileDataRepository.save(FileData.builder()
-                .name(file.getOriginalFilename())
-                .type(file.getContentType())
-                .filePath(filePath).build());
+        // Add timestamp to filename
+        String fileNameWithTimestamp = System.currentTimeMillis() + "_" + file.getOriginalFilename();
 
-        file.transferTo(new File(filePath));
+        // Upload the file to Firebase Storage
+        Bucket bucket = StorageClient.getInstance().bucket();
+        Blob blob = bucket.create("medical/Images/" + fileNameWithTimestamp, file.getBytes(), file.getContentType());
 
-        if (fileData != null) {
-            return "file uploaded successfully : " + filePath;
-        }
-        return null;
+        // Properly encode the image URL
+        String fullFileUrl = baseUrl + "medical%2FImages%2F" + fileNameWithTimestamp + "?alt=media";
+
+        fileUrl.append(fullFileUrl);
+        return fileUrl.toString();
     }
+
 
     public FileData downloadImageFromFileSystem(String fileName) throws IOException {
-        Optional<FileData> fileData = fileDataRepository.findByName(fileName);
-        if (fileData.isPresent()) {
-            String filePath = fileData.get().getFilePath();
-            byte[] images = Files.readAllBytes(new File(filePath).toPath());
-            fileData.get().setData(images);
-            return fileData.get();
+        List<FileData> fileDataList = fileDataRepository.findByNamess(fileName);
+
+        if (fileDataList.isEmpty()) {
+            throw new IOException("File not found with name: " + fileName);
+        } else if (fileDataList.size() > 1) {
+            fileDataList.sort(Comparator.comparing(FileData::getCreatedDate).reversed());
         }
-        throw new IOException("File not found");
+
+        FileData fileData = fileDataList.get(0); // Get the most relevant record
+        String fileUrl = fileData.getFilePath();
+        URL url = new URL(fileUrl);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+
+        try (BufferedInputStream in = new BufferedInputStream(connection.getInputStream());
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+            fileData.setData(out.toByteArray());
+            return fileData;
+        }
     }
 
-    public String GanratePationToExcel() throws FileNotFoundException {
+    public String GanratePationToExcel() throws IOException {
         Workbook workbook = new HSSFWorkbook();
-        String filePath = excelFolder + "PationData"+ System.currentTimeMillis() + ".xls";
-        List<Patients> pations = patientRepository.findAll();
+        String timestamp = System.currentTimeMillis() + "";
+        String fileName = "PationData" + timestamp + ".xls";
+
+        List<Patients> patients = patientRepository.findAll();
         Sheet sheet = workbook.createSheet("Patients");
 
+        // Create header row
         Row headerRow = sheet.createRow(0);
         headerRow.createCell(0).setCellValue("ID");
         headerRow.createCell(1).setCellValue("Address");
@@ -73,36 +101,50 @@ public class StorageService {
         headerRow.createCell(5).setCellValue("Last Name");
         headerRow.createCell(6).setCellValue("Phone");
 
-        for (int i = 0; i < pations.size(); i++) {
-            Patients patient = pations.get(i);
-            User user = userRepository.findById(patient.getUser().getId()).get();
-            Row row = sheet.createRow(i + 1);
-            row.createCell(0).setCellValue(patient.getId());
-            row.createCell(1).setCellValue(user.getAddress());
-            row.createCell(2).setCellValue(patient.getAge());
-            row.createCell(3).setCellValue(patient.getCreatedDate().toString());
-            row.createCell(4).setCellValue(user.getFirstName());
-            row.createCell(5).setCellValue(user.getLastName());
-            row.createCell(6).setCellValue(user.getPhone());
+        // Populate patient data
+        for (int i = 0; i < patients.size(); i++) {
+            Patients patient = patients.get(i);
+            User user = userRepository.findById(patient.getUser().getId()).orElse(null);
+            if (user != null) {
+                Row row = sheet.createRow(i + 1);
+                row.createCell(0).setCellValue(patient.getId());
+                row.createCell(1).setCellValue(user.getAddress());
+                row.createCell(2).setCellValue(patient.getAge());
+                row.createCell(3).setCellValue(patient.getCreatedDate().toString());
+                row.createCell(4).setCellValue(user.getFirstName());
+                row.createCell(5).setCellValue(user.getLastName());
+                row.createCell(6).setCellValue(user.getPhone());
+            }
         }
-        try (OutputStream fileOut = new FileOutputStream(filePath)) {
-            workbook.write(fileOut);
-            workbook.close();
-            FileData fileData = fileDataRepository.save(FileData.builder()
-                    .name("PationData"+ System.currentTimeMillis() + ".xls")
-                    .type("application/vnd.ms-excel")
-                    .filePath(filePath).build());
 
-            return  filePath;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "error";
-        }
+        // Convert workbook to byte array
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+        byte[] excelData = outputStream.toByteArray();
+
+        // Upload Excel file to Firebase Storage
+        String firebasePath = "medical/Excel/" + fileName;
+        Bucket bucket = StorageClient.getInstance().bucket();
+        Blob blob = bucket.create(firebasePath, excelData, "application/vnd.ms-excel");
+
+        String downloadUrl = baseUrl + "medical%2FExcel%2F" + fileName + "?alt=media";
+
+        // Save file data in database (Optional)
+        FileData fileData = fileDataRepository.save(FileData.builder()
+                .name(fileName)
+                .type("application/vnd.ms-excel")
+                .filePath(downloadUrl)
+                .build());
+
+        return downloadUrl; // Return the Firebase URL
     }
 
-    public String GanarateMedicineToExcel() throws FileNotFoundException {
+    public String GanarateMedicineToExcel() throws IOException {
         Workbook workbook = new HSSFWorkbook();
-        String filePath = excelFolder + "MedicineData"+ System.currentTimeMillis() + ".xls";
+        String timestamp = System.currentTimeMillis() + "";
+        String fileName = "MedicineData" + timestamp + ".xls";
+
         List<Medicine> medicines = medicineRepository.findAll();
         Sheet sheet = workbook.createSheet("Medicines");
 
@@ -118,37 +160,47 @@ public class StorageService {
         for (int i = 0; i < medicines.size(); i++) {
             Medicine medicine = medicines.get(i);
             Row row = sheet.createRow(i + 1);
+
             row.createCell(0).setCellValue(medicine.getId());
             row.createCell(1).setCellValue(medicine.getName());
             row.createCell(2).setCellValue(medicine.getBuyPrice());
             row.createCell(3).setCellValue(medicine.getPurchasePrice());
             row.createCell(4).setCellValue(medicine.getExpirationDate().toString());
             row.createCell(5).setCellValue(medicine.getCreatedDate().toString());
+
             WarehouseStore warehouseStore = warehouseStoreRepository.findByMedicineId(medicine.getId());
             if (warehouseStore == null) {
                 warehouseStore = WarehouseStore.builder().quantity(0).build();
             }
             row.createCell(6).setCellValue(warehouseStore.getQuantity());
-
         }
-        try (OutputStream fileOut = new FileOutputStream(filePath)) {
-            workbook.write(fileOut);
-            workbook.close();
-            FileData fileData = fileDataRepository.save(FileData.builder()
-                    .name("MedicineData"+ System.currentTimeMillis() + ".xls")
-                    .type("application/vnd.ms-excel")
-                    .filePath(filePath).build());
 
-            return  filePath;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "error";
-        }
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+        byte[] excelData = outputStream.toByteArray();
+
+        String firebasePath = "medical/Excel/" + fileName;
+        Bucket bucket = StorageClient.getInstance().bucket();
+        Blob blob = bucket.create(firebasePath, excelData, "application/vnd.ms-excel");
+
+        String downloadUrl = baseUrl + "medical%2FExcel%2F" + fileName + "?alt=media";
+
+        FileData fileData = fileDataRepository.save(FileData.builder()
+                .name(fileName)
+                .type("application/vnd.ms-excel")
+                .filePath(downloadUrl)
+                .build());
+
+        return downloadUrl;
     }
 
     public String GanaratePatientTreatmentToExcel() throws FileNotFoundException {
         Workbook workbook = new HSSFWorkbook();
-        String filePath = excelFolder + "PatientTreatmentData" + System.currentTimeMillis() + ".xls";
+        String mm = System.currentTimeMillis() + "";
+        String fileName = "PatientTreatmentData" + mm + ".xls";
+        String firebasePath = "medical/Excel/" + fileName;
+
         List<Patients> patientTreatments = patientRepository.findAll();
         Sheet sheet = workbook.createSheet("PatientTreatments");
 
@@ -299,21 +351,29 @@ public class StorageService {
             }
         }
 
-        try (OutputStream fileOut = new FileOutputStream(filePath)) {
-            workbook.write(fileOut);
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            workbook.write(outputStream);
             workbook.close();
-            FileData fileData = fileDataRepository.save(FileData.builder()
-                    .name("PatientTreatmentData" + System.currentTimeMillis() + ".xls")
-                    .type("application/vnd.ms-excel")
-                    .filePath(filePath).build());
 
-            return filePath;
+            Bucket bucket = StorageClient.getInstance().bucket();
+            Blob blob = bucket.create(firebasePath, outputStream.toByteArray(), "application/vnd.ms-excel");
+
+            // Generate Firebase download URL
+            String downloadUrl = baseUrl + "medical%2FExcel%2F" + fileName + "?alt=media";
+
+            // Save file metadata
+            FileData fileData = fileDataRepository.save(FileData.builder()
+                    .name(fileName)
+                    .type("application/vnd.ms-excel")
+                    .filePath(downloadUrl)
+                    .build());
+
+            return downloadUrl;
         } catch (IOException e) {
             e.printStackTrace();
             return "error";
         }
     }
-
 
 
 

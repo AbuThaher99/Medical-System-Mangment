@@ -36,4 +36,11 @@ public class Feedback extends BaseEntity {
     @JoinColumn(name = "patientId", nullable = false)
     @JsonBackReference("patient-feedback")
     private Patients patient;
+
+
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "treatmentId", nullable = false, unique = true)
+    @JsonBackReference("treatment-feedback")
+    private Treatment treatment;
+
 }

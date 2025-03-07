@@ -2,7 +2,11 @@ package org.example.ProjectTraninng.Core.Servecies;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.example.ProjectTraninng.Common.Converters.PatientMedicineMapper;
+import org.example.ProjectTraninng.Common.Converters.WarehouseMapper;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.PatientMedicineDTO;
+import org.example.ProjectTraninng.Common.DTOs.WarehosueDTO;
 import org.example.ProjectTraninng.Common.Entities.*;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
 import org.example.ProjectTraninng.Core.Repsitories.*;
@@ -13,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +40,10 @@ public class PatientMedicineService {
         if (warehouseStore.getQuantity() < patientMedicineRequest.getQuantity()) {
             throw new UserNotFoundException("The quantity of the medicine is not available");
         }
+        if (patientMedicineRequest.getQuantity() <= 0) {
+            throw new UserNotFoundException("The quantity of the medicine must be greater than 0");
+        }
+
         warehouseStore.setQuantity(warehouseStore.getQuantity() - patientMedicineRequest.getQuantity());
         warehouseStoreRepository.save(warehouseStore);
         PatientMedicine patientMedicine = PatientMedicine.builder()
@@ -72,16 +81,16 @@ public class PatientMedicineService {
         PatientMedicine patientMedicine = patientMedicineRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Patient medicine not found"));
 
-       treatmentRepository.findById(patientMedicineRequest.getTreatment().getId())
+        Treatment treatment =    treatmentRepository.findById(patientMedicineRequest.getTreatment().getId())
                 .orElseThrow(() -> new UserNotFoundException("Treatment not found"));
 
-        medicineRepository.findById(patientMedicineRequest.getMedicine().getId())
+      Medicine med =  medicineRepository.findById(patientMedicineRequest.getMedicine().getId())
                 .orElseThrow(() -> new UserNotFoundException("Medicine not found"));
 
         patientMedicine.setQuantity(patientMedicineRequest.getQuantity());
-        patientMedicine.setPrice(patientMedicineRequest.getPrice());
-        patientMedicine.setTreatment(patientMedicineRequest.getTreatment());
-        patientMedicine.setMedicine(patientMedicineRequest.getMedicine());
+        patientMedicine.setPrice(med.getBuyPrice());
+        patientMedicine.setTreatment(treatment);
+        patientMedicine.setMedicine(med);
         patientMedicineRepository.save(patientMedicine);
         return GeneralResponse.builder()
                 .message("Patient medicine updated successfully")
@@ -99,7 +108,7 @@ public class PatientMedicineService {
                 .build();
     }
     @Transactional
-    public PaginationDTO<PatientMedicine> GetAllPatientMedicines(int page , int size, String search , List<Long> treatmentIds, List<Long> medicineIds, List<Long> patientIds) throws UserNotFoundException {
+    public PaginationDTO<PatientMedicineDTO> GetAllPatientMedicines(int page , int size, String search , List<Long> treatmentIds, List<Long> medicineIds, List<Long> patientIds) throws UserNotFoundException {
         if (patientIds != null && patientIds.isEmpty()) {
             patientIds = null;
         }
@@ -116,13 +125,16 @@ public class PatientMedicineService {
         }
         Pageable pageable = PageRequest.of(page - 1, size);
         Page<PatientMedicine> patientMedicines = patientMedicineRepository.findAll(pageable,search, treatmentIds,medicineIds,patientIds);
-        PaginationDTO<PatientMedicine> paginationDTO = new PaginationDTO<>();
+        List<PatientMedicineDTO> patientMedicinesDTOs = patientMedicines.getContent().stream()
+                .map(PatientMedicineMapper::toDTO)
+                .collect(Collectors.toList());
+        PaginationDTO<PatientMedicineDTO> paginationDTO = new PaginationDTO<>();
         paginationDTO.setTotalElements(patientMedicines.getTotalElements());
         paginationDTO.setTotalPages(patientMedicines.getTotalPages());
         paginationDTO.setSize(patientMedicines.getSize());
         paginationDTO.setNumber(patientMedicines.getNumber() + 1);
         paginationDTO.setNumberOfElements(patientMedicines.getNumberOfElements());
-        paginationDTO.setContent(patientMedicines.getContent());
+        paginationDTO.setContent(patientMedicinesDTOs);
 
         return paginationDTO;
     }

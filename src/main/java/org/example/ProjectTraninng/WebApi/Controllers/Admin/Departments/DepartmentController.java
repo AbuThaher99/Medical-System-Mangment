@@ -4,6 +4,7 @@ import javax.validation.Valid;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.example.ProjectTraninng.Common.DTOs.DepartmentDTO;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
 import org.example.ProjectTraninng.Common.Entities.Department;
 import org.example.ProjectTraninng.Common.Entities.User;
@@ -66,16 +67,35 @@ public class DepartmentController extends SessionManagement {
     }
 
     @GetMapping("")
-    public PaginationDTO<Department> getAllDepartments(@RequestParam(defaultValue = "1", required = false) int page,
-                                                       @RequestParam(defaultValue = "10" ,required = false) int size,
-                                                       @RequestParam(defaultValue = "",required = false) String search  ,
-                                                       HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public PaginationDTO<DepartmentDTO> getAllDepartments(@RequestParam(defaultValue = "1", required = false) int page,
+                                                          @RequestParam(defaultValue = "10" ,required = false) int size,
+                                                          @RequestParam(defaultValue = "",required = false) String search  ,
+                                                          HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
         validateLoggedInAdmin(user);
         return departmentService.getAllDepartment(page, size,search);
 
     }
+    @GetMapping("/deleted")
+    public PaginationDTO<DepartmentDTO> getAllDeletedDepartments(@RequestParam(defaultValue = "1", required = false) int page,
+                                                          @RequestParam(defaultValue = "10" ,required = false) int size,
+                                                          @RequestParam(defaultValue = "",required = false) String search  ,
+                                                          HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        return departmentService.getAllDeletedDepartment( page, size,search);
 
+    }
+
+    @PutMapping("/restore/{departmentId}")
+    public ResponseEntity<GeneralResponse> restoreDepartment(@PathVariable Long departmentId, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        departmentService.restoreDepartment(departmentId);
+        return new ResponseEntity<>(new GeneralResponse("Department restored successfully"), HttpStatus.OK);
+    }
 
 }

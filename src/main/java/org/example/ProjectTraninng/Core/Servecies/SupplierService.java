@@ -64,11 +64,11 @@ public class SupplierService {
         return supplier;
     }
 
-    public PaginationDTO<Supplier> getAllSuppliers(int page, int size, String search, CompanyNames companyName) {
+    public PaginationDTO<Supplier> getAllSuppliers(int page, int size, String search, String companyName) {
         if(search!=null && search.isEmpty()){
             search = null;
         }
-        if(companyName!=null &&  !EnumSet.allOf(CompanyNames.class).contains(companyName)){
+        if(companyName!=null &&  companyName.isEmpty()){
             companyName = null;
         }
         if (page < 1) {
@@ -84,5 +84,36 @@ public class SupplierService {
         paginationDTO.setNumberOfElements(suppliers.getNumberOfElements());
         paginationDTO.setContent(suppliers.getContent());
         return paginationDTO;
+    }
+
+    public PaginationDTO<Supplier> getAllDeletedSuppliers(int page, int size, String search, String companyName) {
+        if(search!=null && search.isEmpty()){
+            search = null;
+        }
+        if(companyName!=null &&  companyName.isEmpty()){
+            companyName = null;
+        }
+        if (page < 1) {
+            page = 1;
+        }
+        Pageable pageable = PageRequest.of(page - 1, size);
+        Page<Supplier> suppliers = supplierRepository.findDeletedAll(pageable, search, companyName);
+        PaginationDTO<Supplier> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(suppliers.getTotalElements());
+        paginationDTO.setTotalPages(suppliers.getTotalPages());
+        paginationDTO.setSize(suppliers.getSize());
+        paginationDTO.setNumber(suppliers.getNumber() + 1);
+        paginationDTO.setNumberOfElements(suppliers.getNumberOfElements());
+        paginationDTO.setContent(suppliers.getContent());
+        return paginationDTO;
+    }
+
+    public GeneralResponse restoreSupplier(Long id) throws UserNotFoundException {
+        var supplierOptional = supplierRepository.findByIdAndDeleted(id).orElseThrow(
+                () -> new UserNotFoundException("Supplier not found"));
+        Supplier supplier = supplierOptional;
+        supplier.setDeleted(false);
+        supplierRepository.save(supplier);
+        return GeneralResponse.builder().message("Supplier restored successfully").build();
     }
 }

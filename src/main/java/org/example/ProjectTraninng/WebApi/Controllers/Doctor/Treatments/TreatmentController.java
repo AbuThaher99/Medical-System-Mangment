@@ -3,7 +3,9 @@ package org.example.ProjectTraninng.WebApi.Controllers.Doctor.Treatments;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.*;
+import org.example.ProjectTraninng.Common.Entities.Doctor;
+import org.example.ProjectTraninng.Common.Entities.Patients;
 import org.example.ProjectTraninng.Common.Entities.Treatment;
 import org.example.ProjectTraninng.Common.Entities.User;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
@@ -38,7 +40,7 @@ public class TreatmentController extends SessionManagement {
     public ResponseEntity<GeneralResponse> updateTreatment(@RequestBody @Valid Treatment request, @PathVariable Long treatmentId, HttpServletRequest httpServletRequest) throws UserNotFoundException {
        String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
-        validateLoggedInDoctor(user);
+        validateLoggedInSecDoc(user);
         return ResponseEntity.ok(treatmentService.updateTreatment(request, treatmentId));
     }
 
@@ -46,7 +48,7 @@ public class TreatmentController extends SessionManagement {
     public ResponseEntity<GeneralResponse> deleteTreatment(@PathVariable Long treatmentId, HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
-        validateLoggedInDoctor(user);
+        validateLoggedInSecDoc(user);
         return ResponseEntity.ok(treatmentService.deleteTreatment(treatmentId));
     }
 
@@ -59,29 +61,48 @@ public class TreatmentController extends SessionManagement {
     }
 
     @GetMapping("")
-    public PaginationDTO<Treatment> getAllTreatments(@RequestParam(defaultValue = "1",required = false) int page,
-                                                     @RequestParam(defaultValue = "10",required = false) int size,
-                                                     @RequestParam(defaultValue = "",required = false)List<Long> patientIds,
-                                                     @RequestParam(defaultValue = "",required = false) Long patientId,
-                                                     @RequestParam(defaultValue = "",required = false)String search,
-                                                     HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public PaginationDTO<TreatmentDTO> getAllTreatments(@RequestParam(defaultValue = "1", required = false) int page,
+                                                        @RequestParam(defaultValue = "10", required = false) int size,
+                                                        @RequestParam(defaultValue = "", required = false) List<Long> patientIds,
+                                                        @RequestParam(defaultValue = "", required = false) Long patientId,
+                                                        @RequestParam(defaultValue = "", required = false) String search,
+                                                        HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
-        validateLoggedInDoctor(user);
-        return treatmentService.getAllTreatments(page, size , patientIds, patientId, search);
-    }
+        validateLoggedInSecDoc(user);
 
-    @GetMapping("/{patientId}")
-    public ResponseEntity<Iterable<Treatment>> getTreatmentByPatientId(@PathVariable Long patientId,@RequestParam(defaultValue = "0") int page,
-                                                                       @RequestParam(defaultValue = "10") int size, HttpServletRequest httpServletRequest) throws UserNotFoundException {
-        String token = service.extractToken(httpServletRequest);
-        User user = service.extractUserFromToken(token);
-        validateLoggedInDoctor(user);
-        return ResponseEntity.ok(treatmentService.getAllTreatmentsForPatient(patientId, page, size));
+        return treatmentService.getAllTreatments(page, size, patientIds, patientId, search, user);
     }
 
 
+//    @GetMapping("/{patientId}")
+//    public ResponseEntity<Iterable<Treatment>> getTreatmentByPatientId(@PathVariable Long patientId,@RequestParam(defaultValue = "0") int page,
+//                                                                       @RequestParam(defaultValue = "10") int size, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+//        String token = service.extractToken(httpServletRequest);
+//        User user = service.extractUserFromToken(token);
+//        validateLoggedInDoctor(user);
+//        return ResponseEntity.ok(treatmentService.getAllTreatmentsForPatient(patientId, page, size));
+//    }
 
+
+    @GetMapping("/doctor")
+    public PaginationDTO<DoctorDTO> getAllDoctor(@RequestParam(defaultValue = "1",required = false) int page,
+                                                   @RequestParam(defaultValue = "10",required = false) int size,
+                                                   HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecDoc(user);
+        return treatmentService.getAllDoctor(page, size );
+    }
+    @GetMapping("/patient")
+    public PaginationDTO<PatientDTO> getAllPatients(@RequestParam(defaultValue = "1",required = false) int page,
+                                                      @RequestParam(defaultValue = "10",required = false) int size,
+                                                      HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecDoc(user);
+        return treatmentService.getAllPatient(page, size );
+    }
 
 
 

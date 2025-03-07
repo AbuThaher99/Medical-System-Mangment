@@ -3,8 +3,10 @@ package org.example.ProjectTraninng.WebApi.Controllers.AdminMedicine;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.ProjectTraninng.Common.DTOs.MedicineDTO;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
 import org.example.ProjectTraninng.Common.Entities.Medicine;
+import org.example.ProjectTraninng.Common.Entities.Supplier;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
 import org.example.ProjectTraninng.Core.Servecies.AuthenticationService;
 import org.example.ProjectTraninng.Core.Servecies.MedicineService;
@@ -57,14 +59,42 @@ public class MedicineController extends SessionManagement {
     }
 
     @GetMapping("")
-    public PaginationDTO<Medicine> getAllMedicines(@RequestParam(defaultValue = "1",required = false) int page,
-                                                   @RequestParam(defaultValue = "10",required = false) int size,
-                                                   @RequestParam(defaultValue = "",required = false ) String search ,
-                                                   HttpServletRequest httpServletRequest) throws UserNotFoundException {
+    public PaginationDTO<MedicineDTO> getAllMedicines(@RequestParam(defaultValue = "1",required = false) int page,
+                                                      @RequestParam(defaultValue = "10",required = false) int size,
+                                                      @RequestParam(defaultValue = "",required = false ) String search ,
+                                                      HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
         User user = service.extractUserFromToken(token);
         validateLoggedInWarehouseEmployee(user);
         return medicineService.getAllMedicines(page, size,search);
     }
 
+    @GetMapping("/deleted")
+    public PaginationDTO<Medicine> getAllDeletedMedicines(@RequestParam(defaultValue = "1",required = false) int page,
+                                                   @RequestParam(defaultValue = "10",required = false) int size,
+                                                   @RequestParam(defaultValue = "",required = false ) String search ,
+                                                   HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInWarehouseEmployee(user);
+        return medicineService.getAllDeletedMedicines(page, size,search);
+    }
+
+    @GetMapping("/AllSuppliers")
+    public PaginationDTO<Supplier> AllSuppliers(@RequestParam(defaultValue = "1",required = false) int page,
+                                                @RequestParam(defaultValue = "10",required = false) int size,
+                                                HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInWarehouseEmployee(user);
+        return medicineService.findAllSuppliers(page, size);
+    }
+
+    @PutMapping("/restore/{medicineId}")
+    public ResponseEntity<GeneralResponse> restoreMedicine(@PathVariable  Long medicineId, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInWarehouseEmployee(user);
+        return ResponseEntity.ok(medicineService.restoreMedicine(medicineId));
+    }
 }

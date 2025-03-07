@@ -1,18 +1,16 @@
 package org.example.ProjectTraninng.WebApi.Controllers.Secrerary.Patients;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.PatientDTO;
 import org.example.ProjectTraninng.Common.Entities.Patients;
 import org.example.ProjectTraninng.Common.Entities.User;
-import org.example.ProjectTraninng.Common.Responses.AuthenticationResponse;
 import org.example.ProjectTraninng.Common.Responses.GeneralResponse;
 import org.example.ProjectTraninng.Core.Servecies.AuthenticationService;
 import org.example.ProjectTraninng.Core.Servecies.PatientService;
 import org.example.ProjectTraninng.SessionManagement;
 import org.example.ProjectTraninng.WebApi.Exceptions.UserNotFoundException;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +39,15 @@ public class PatientController extends SessionManagement {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Patient not found");
         }
     }
+
+    @GetMapping("/by-id/{id}")
+    public ResponseEntity<?> getPatientId(@PathVariable Long id, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecretary(user);
+        PatientDTO patientRequest = patientService.getPatientID(id);
+       return ResponseEntity.ok(patientRequest);
+    }
     @DeleteMapping("/{email}")
         public ResponseEntity<?> deletePatientByEmail(@PathVariable String email, HttpServletRequest httpServletRequest) throws UserNotFoundException {
             String token = service.extractToken(httpServletRequest);
@@ -51,7 +58,7 @@ public class PatientController extends SessionManagement {
         }
 
     @GetMapping("")
-    public PaginationDTO<Patients> getAllPatients(@RequestParam(defaultValue = "1",required = false) int page,
+    public PaginationDTO<PatientDTO> getAllPatients(@RequestParam(defaultValue = "1",required = false) int page,
                                                   @RequestParam(defaultValue = "10",required = false) int size,
                                                   @RequestParam(defaultValue = "",required = false) String search ,
                                                   @RequestParam(defaultValue = "",required = false) List<Long> doctorIds ,
