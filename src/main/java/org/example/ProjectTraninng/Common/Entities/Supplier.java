@@ -26,9 +26,8 @@ public class Supplier extends BaseEntity {
 
 
     @Column(name = "companyName", nullable = false)
-    @Enumerated(EnumType.STRING)
     @NotNull(message = "Company Name is required")
-    private CompanyNames companyName;
+    private String companyName;
 
     @Column(name = "phone", nullable = false)
     @NotNull(message = "Phone is required")

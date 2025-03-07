@@ -17,4 +17,16 @@ public interface PatientsBloodRepository extends JpaRepository<PatientsBlood, Lo
             "(:patientIds is null or pb.patients.id in :patientIds) and " +
             "(:quantity is null or pb.quantity = :quantity)")
     Page<PatientsBlood> findAll(Pageable pageable, @Param("search") String search, @Param("patientIds") List<Long> patientIds, @Param("bloodType")BloodTypes bloodType, @Param("quantity") Integer quantity);
+
+    @Query("select pb from PatientsBlood pb where pb.isDeleted = true and  (:search IS NULL OR :search = '' OR pb.patients.user.firstName like %:search% " +
+            "or pb.patients.user.phone like %:search% or pb.patients.user.lastName like  %:search% ) and " +
+            "(:bloodType is null or pb.patientsBlood.type = :bloodType) and " +
+            "(:patientIds is null or pb.patients.id in :patientIds) and " +
+            "(:quantity is null or pb.quantity = :quantity)")
+    Page<PatientsBlood> findDeletedAll(Pageable pageable, @Param("search") String search, @Param("patientIds") List<Long> patientIds, @Param("bloodType")BloodTypes bloodType, @Param("quantity") Integer quantity);
+
+
+
+    @Query("select pb from PatientsBlood pb where pb.id = :id and pb.isDeleted = true")
+    PatientsBlood findDeletedById(@Param("id") Long id);
 }

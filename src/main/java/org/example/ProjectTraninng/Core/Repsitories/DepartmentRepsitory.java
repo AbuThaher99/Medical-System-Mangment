@@ -1,5 +1,6 @@
 package org.example.ProjectTraninng.Core.Repsitories;
 
+import org.example.ProjectTraninng.Common.DTOs.DepartmentDTO;
 import org.example.ProjectTraninng.Common.Entities.Department;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,4 +29,13 @@ public interface DepartmentRepsitory extends JpaRepository<Department, Long>{
             "d.secretaryId.firstName like %:search% or d.secretaryId.lastName like %:search%)")
     Page<Department> findAll(Pageable pageable , @Param("search") String name);
 
+
+    @Query("SELECT d FROM Department d WHERE d.isDeleted = true and (:search IS NULL or :search = '' or" +
+            " d.name like %:search% or d.headId.firstName like %:search% or d.headId.lastName like %:search% or " +
+            "d.secretaryId.firstName like %:search% or d.secretaryId.lastName like %:search%)")
+    Page<Department> findDeletedAll(Pageable pageable , @Param("search") String name);
+
+    // query to get a department where it deleted true
+    @Query("SELECT d FROM Department d WHERE d.isDeleted = true and d.id = :id")
+    Optional<Department> findDeletedById(@Param("id") Long departmentId);
 }

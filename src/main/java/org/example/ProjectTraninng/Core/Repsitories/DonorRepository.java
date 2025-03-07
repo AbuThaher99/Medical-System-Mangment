@@ -19,4 +19,12 @@ public interface DonorRepository extends JpaRepository<Donor, Long> {
             "(:donorIds is null or d.id in :donorIds) and " +
             "(:gender is null or d.gender =:gender)")
     Page<Donor> findAll(Pageable pageable, @Param("search") String search, @Param("bloodType") BloodTypes bloodType, @Param("donorIds")List<Long> donorIds , @Param("gender") Gender gender);
+
+    @Query("select d from Donor d where d.isDeleted = true and (:search IS NULL OR :search = '' OR d.name like %:search% or d.phone like %:search%) and " +
+            "(:bloodType is null or d.bloodType = :bloodType) and " +
+            "(:donorIds is null or d.id in :donorIds) and " +
+            "(:gender is null or d.gender =:gender)")
+    Page<Donor> findAllDeleted(Pageable pageable, @Param("search") String search, @Param("bloodType") BloodTypes bloodType, @Param("donorIds")List<Long> donorIds , @Param("gender") Gender gender);
+    @Query("select d from Donor d where d.id = :id and d.isDeleted = true")
+    Donor findDeletedById(@Param("id") Long id);
 }

@@ -27,6 +27,8 @@ public class SecurityConfiguration {
             "/v3/api-docs",
             "/v3/api-docs/**",
             "http://127.0.0.1:5500",
+            "http://localhost:4200",
+            "/admin/user/**",
             "/swagger-ui/**",
             "/swagger-ui.html","/resetPasswordPage" ,};
 
@@ -48,7 +50,7 @@ public class SecurityConfiguration {
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .logout(logout ->
-                        logout.logoutUrl("/api/v1/auth/logout")
+                        logout.logoutUrl("/auth/logout")
                                 .addLogoutHandler(logoutHandler)
                                 .logoutSuccessHandler((request, response, authentication) -> SecurityContextHolder.clearContext())
                 )

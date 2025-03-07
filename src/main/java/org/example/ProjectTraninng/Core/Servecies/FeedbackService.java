@@ -4,9 +4,11 @@ import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
 import org.example.ProjectTraninng.Common.Entities.Doctor;
 import org.example.ProjectTraninng.Common.Entities.Feedback;
 import org.example.ProjectTraninng.Common.Entities.Patients;
+import org.example.ProjectTraninng.Common.Entities.Treatment;
 import org.example.ProjectTraninng.Core.Repsitories.DoctorRepository;
 import org.example.ProjectTraninng.Core.Repsitories.FeedbackRepository;
 import org.example.ProjectTraninng.Core.Repsitories.PatientRepository;
+import org.example.ProjectTraninng.Core.Repsitories.TreatmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,9 @@ public class FeedbackService {
     @Autowired
     private DoctorRepository doctorRepository;
 
+    @Autowired
+    private TreatmentRepository treatmentRepository;
+
     public Feedback addFeedback(Feedback feedback) {
         Patients patients = patientRepository.findById(feedback.getPatient().getId()).orElseThrow(
                 () -> new RuntimeException("Patient not found with id: " + feedback.getPatient().getId())
@@ -36,6 +41,13 @@ public class FeedbackService {
                 () -> new RuntimeException("Doctor not found with id: " + feedback.getDoctor().getId())
         );
         feedback.setDoctor(doctor);
+
+        Treatment treatment = treatmentRepository.findById(feedback.getTreatment().getId()).orElseThrow(
+                () -> new RuntimeException("Treatment not found with id: " + feedback.getTreatment().getId())
+        );
+        feedback.setTreatment(treatment);
+        treatment.setRated(true);
+        treatmentRepository.save(treatment);
 
         return feedbackRepository.save(feedback);
     }

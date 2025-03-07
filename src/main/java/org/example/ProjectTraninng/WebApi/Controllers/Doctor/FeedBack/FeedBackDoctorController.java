@@ -20,14 +20,13 @@ public class FeedBackDoctorController extends SessionManagement {
     private final AuthenticationService authenticationService;
 
     @GetMapping("")
-    public PaginationDTO<Feedback> getFeedbackByDoctor(@RequestParam(defaultValue = "",required = false) Long doctorId,
-                                                       @RequestParam(defaultValue = "1") int page,
+    public PaginationDTO<Feedback> getFeedbackByDoctor(@RequestParam(defaultValue = "1") int page,
                                                        @RequestParam(defaultValue = "10") int size,
                                                        HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = authenticationService.extractToken(httpServletRequest);
         User user = authenticationService.extractUserFromToken(token);
         validateLoggedInDoctor(user);
-        return feedBackDoctorService.getFeedbackByDoctor(page, size, doctorId);
+        return feedBackDoctorService.getFeedbackByDoctor(page, size, user.getDoctor().getId());
     }
 
 }

@@ -59,4 +59,13 @@ public class Treatment extends BaseEntity {
     @Column(name = "notificationSent", nullable = false)
     @Builder.Default
     private boolean notificationSent = false;
+    @OneToOne(mappedBy = "treatment", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonManagedReference("treatment-feedback")
+    private Feedback feedback;
+
+
+
+    @Column(name = "isRated", nullable = false)
+    @Builder.Default
+    private boolean isRated = false;
 }

@@ -2,7 +2,9 @@ package org.example.ProjectTraninng.WebApi.Controllers.Secrerary.Blood;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
+import org.example.ProjectTraninng.Common.DTOs.DonationDTO;
 import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.PatientsBloodDTO;
 import org.example.ProjectTraninng.Common.Entities.Donation;
 import org.example.ProjectTraninng.Common.Entities.Donor;
 import org.example.ProjectTraninng.Common.Entities.PatientsBlood;
@@ -66,7 +68,7 @@ public class BloodController extends SessionManagement {
     }
 
 
-    @GetMapping("/donors")
+    @GetMapping("/donor")
     public PaginationDTO<Donor> getDonors(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -80,7 +82,27 @@ public class BloodController extends SessionManagement {
         validateLoggedInSecretary(user);
         return bloodService.getDonors(page, size, search, bloodType, donorIds, gender);
     }
-
+    @GetMapping("/DeletedDonor")
+    public PaginationDTO<Donor> getDeletedDonors(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false ,defaultValue = "") String search,
+            @RequestParam(required = false ,defaultValue = "") BloodTypes bloodType,
+            @RequestParam(required = false ,defaultValue = "") List<Long> donorIds,
+            @RequestParam(required = false ,defaultValue = "") Gender gender,
+            HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecretary(user);
+        return bloodService.getDeletedDonors(page, size, search, bloodType, donorIds, gender);
+    }
+    @PutMapping("/restoreDonor/{donorId}")
+    public GeneralResponse restoreDonor(@PathVariable Long donorId,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecretary(user);
+        return bloodService.restoreDonor(donorId);
+    }
     @PostMapping("/donation/{donorId}")
     public GeneralResponse addDonation(@PathVariable Long donorId, @RequestBody Donation donation,HttpServletRequest httpServletRequest) throws UserNotFoundException {
         String token = service.extractToken(httpServletRequest);
@@ -99,7 +121,7 @@ public class BloodController extends SessionManagement {
     }
 
     @GetMapping("/donations")
-    public PaginationDTO<Donation> getDonations(
+    public PaginationDTO<DonationDTO> getDonations(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false ,defaultValue = "") String search,
@@ -122,7 +144,7 @@ public class BloodController extends SessionManagement {
     }
 
     @GetMapping("/patientsBlood")
-    public PaginationDTO<PatientsBlood> getPatientsBlood(
+    public PaginationDTO<PatientsBloodDTO> getPatientsBlood(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false ,defaultValue = "") String search,
@@ -135,6 +157,35 @@ public class BloodController extends SessionManagement {
         validateLoggedInSecretary(user);
         return bloodService.getPatientsBlood(page, size, search, patientIds ,bloodType, quantity);
     }
+    @DeleteMapping("/patientsBlood/{patientsBloodId}")
+    public GeneralResponse deletePatientsBlood(@PathVariable Long patientsBloodId,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecretary(user);
+        return bloodService.deletePatientBlood(patientsBloodId);
+    }
 
+   // restore the patientsBlood
+    @PutMapping("/restorePatientsBlood/{patientsBloodId}")
+    public GeneralResponse restorePatientsBlood(@PathVariable Long patientsBloodId,HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecretary(user);
+        return bloodService.restorePatientBlood(patientsBloodId);
+    }
 
+    @GetMapping("/DeletedPatientsBlood")
+    public PaginationDTO<PatientsBloodDTO> getDeletedPatientsBlood(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false ,defaultValue = "") String search,
+            @RequestParam(required = false ,defaultValue = "") BloodTypes bloodType,
+            @RequestParam(required = false ,defaultValue = "") List<Long> patientIds,
+            @RequestParam(required = false ,defaultValue = "") Integer quantity,
+            HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInSecretary(user);
+        return bloodService.getDeletedPatientsBlood(page, size, search, patientIds ,bloodType, quantity);
+    }
 }

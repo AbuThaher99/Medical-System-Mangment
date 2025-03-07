@@ -60,10 +60,11 @@ public class AuthenticationController {
         return new ResponseEntity<>(patientService.addPatient(request), HttpStatus.CREATED);
     }
     @GetMapping("/getUser")
-    public User getUser(@RequestHeader("Authorization") String request) {
-        String token = request.replace("Bearer ", "");
+    public User getUser(HttpServletRequest httpServletRequest) {
+        String token = service.extractToken(httpServletRequest);
         return service.extractUserFromToken(token);
     }
+
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         logoutService.logout(request, response, authentication);

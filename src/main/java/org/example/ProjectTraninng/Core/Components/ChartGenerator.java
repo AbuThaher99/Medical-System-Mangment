@@ -50,7 +50,6 @@ public class ChartGenerator {
                 true,
                 false
         );
-        
 
         TextTitle title = new TextTitle("Monthly Salary Payments", new Font("Serif", Font.BOLD, 24));
         chart.setTitle(title);

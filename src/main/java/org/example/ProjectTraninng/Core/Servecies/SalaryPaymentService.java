@@ -51,10 +51,13 @@ public class SalaryPaymentService {
 
 
     @Scheduled(cron = "0 0 0 1 * ?") // Runs at midnight on the first day of each month
-    public void processSalaries() {
+        public void processSalaries() {
         List<User> users = userRepository.findAll();
         for (User user : users) {
             Map<String, Object> salary = user.getSalary();
+            if (user.getRole().equals(Role.PATIENT)) {
+                continue;
+            }
             String salaryType = (String) salary.get("salaryType");
             if ("MONTHLY".equals(salaryType)) {
                 processMonthlySalary(user, salary);
@@ -65,7 +68,9 @@ public class SalaryPaymentService {
     }
 
     private void processMonthlySalary(User user, Map<String, Object> salary) {
-        Double salaryAmount = (Double) salary.get("salaryAmount");
+        Number salaryAmountNumber = (Number) salary.get("salaryAmount");
+        Double salaryAmount = salaryAmountNumber.doubleValue(); // Convert safely to double
+
         SalaryPayment payment = SalaryPayment.builder()
                 .user(user)
                 .paymentDate(new Date())
@@ -73,15 +78,21 @@ public class SalaryPaymentService {
                 .salaryType("MONTHLY")
                 .build();
         salaryPaymentRepository.save(payment);
+
         salary.put("salaryAmount", 0.0);
         user.setSalary(salary);
         userRepository.save(user);
     }
 
     private void processHourlySalary(User user, Map<String, Object> salary) {
-        Double hourRate = (Double) salary.get("hourRate");
-        Integer hourWork = (Integer) salary.get("hourWork");
+        Number hourRateNumber = (Number) salary.get("hourRate");
+        Number hourWorkNumber = (Number) salary.get("hourWork");
+
+        Double hourRate = hourRateNumber.doubleValue();
+        Integer hourWork = hourWorkNumber.intValue();
+
         Double totalPayment = hourRate * hourWork;
+
         SalaryPayment payment = SalaryPayment.builder()
                 .user(user)
                 .paymentDate(new Date())
@@ -89,8 +100,10 @@ public class SalaryPaymentService {
                 .salaryType("HOURLY")
                 .build();
         salaryPaymentRepository.save(payment);
+
         salary.put("hourWork", 0);
         user.setSalary(salary);
         userRepository.save(user);
     }
+
 }

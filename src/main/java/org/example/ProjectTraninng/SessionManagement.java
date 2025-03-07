@@ -54,6 +54,10 @@ public class SessionManagement {
         }
     }
 
-
+    public void validateLoggedInSecDoc(User user) throws UserNotFoundException {
+        if(user.getRole() != Role.ADMIN && user.getRole() != Role.DOCTOR && user.getRole() != Role.SECRETARY){
+            throw new UserNotFoundException("You are not authorized to perform this operation");
+        }
+    }
 
 }

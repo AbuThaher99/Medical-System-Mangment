@@ -17,7 +17,7 @@ import java.util.Optional;
 public interface PatientRepository extends JpaRepository<Patients, Long> {
 
 
-    @Query("SELECT p , p.user FROM Patients p WHERE " +
+    @Query("SELECT p  FROM Patients p WHERE " +
             "(:search IS NULL OR :search = '' OR " +
             "p.user.firstName like %:search% or p.user.lastName like %:search% or p.user.address like %:search% or p.user.phone like %:search%) and" +
             "(:doctorIds IS NULL OR p.id IN (SELECT t.patient.id FROM Treatment t WHERE t.doctor.id IN :doctorIds))")
@@ -28,4 +28,7 @@ public interface PatientRepository extends JpaRepository<Patients, Long> {
 //    Page<Patients> findAll(Pageable pageable, @Param("search") String search, @Param("doctorIds") List<Long> doctorIds);
     @Query("SELECT p FROM Patients p WHERE p.user.email = :email and p.user.isDeleted = false")
     Optional<Patients> findByUserEmail(@Param("email") String email);
+
+    @Query("SELECT p FROM Patients p WHERE p.user.id = :id and p.user.isDeleted = false")
+    Optional<Patients> findByUserId(@Param("id") Long id);
 }

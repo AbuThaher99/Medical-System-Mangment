@@ -50,7 +50,15 @@ public class DoctorController extends SessionManagement {
         validateLoggedInAdmin(user);
 
         Doctor doctor = doctorService.findDoctorByEmail(email);
-       // System.out.println(doctor);
+        return ResponseEntity.ok(doctor);
+    }
+
+    @GetMapping("getDoctor/{userId}")
+    public ResponseEntity<User> getDoctorById(@PathVariable Long userId, HttpServletRequest httpServletRequest) throws UserNotFoundException {
+        String token = service.extractToken(httpServletRequest);
+        User user = service.extractUserFromToken(token);
+        validateLoggedInAdmin(user);
+        User doctor = doctorService.getDoctorbyUserId(userId);
         return ResponseEntity.ok(doctor);
     }
 

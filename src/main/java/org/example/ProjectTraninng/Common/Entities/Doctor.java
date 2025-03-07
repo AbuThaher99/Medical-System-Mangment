@@ -37,7 +37,7 @@ public class Doctor extends BaseEntity {
     @NotNull(message = "End time cannot be Null")
     private LocalTime endTime;
 
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToOne
     @JoinColumn(name = "userId",nullable = false)
     @JsonBackReference("doctorUser")
     private User user;

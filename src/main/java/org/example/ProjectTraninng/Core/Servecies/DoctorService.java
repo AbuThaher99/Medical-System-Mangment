@@ -64,6 +64,13 @@ public class DoctorService {
                 .build();
     }
 
+    public User getDoctorbyUserId(Long id) throws UserNotFoundException {
+      var user =   doctorRepository.findUserWithDoctorById(id).orElseThrow(
+                ()-> new UserNotFoundException("Doctor not found")
+      );
+      return user;
+    }
+
     @Transactional
     public void updateDoctor(Doctor request, Long doctorId) throws UserNotFoundException {
         var doctor = doctorRepository.findById(doctorId)

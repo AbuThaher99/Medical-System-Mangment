@@ -5,8 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.example.ProjectTraninng.Common.DTOs.LoginDTO;
-import org.example.ProjectTraninng.Common.DTOs.PaginationDTO;
+import org.example.ProjectTraninng.Common.DTOs.*;
 import org.example.ProjectTraninng.Common.Entities.*;
 import org.example.ProjectTraninng.Common.Enums.BloodTypes;
 import org.example.ProjectTraninng.Common.Enums.Role;
@@ -28,10 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -61,10 +57,15 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public GeneralResponse UpdateUser(User userRequest, Long id) throws UserNotFoundException {
+    public GeneralResponse UpdateUser(UserUpdateDTO userRequest, Long id) throws UserNotFoundException {
         var user = repository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+        user.setAddress(userRequest.getAddress());
+        user.setDateOfBirth(userRequest.getDateOfBirth());
+        user.setFirstName(userRequest.getFirstName());
+        user.setLastName(userRequest.getLastName());
+        user.setPhone(userRequest.getPhone());
+        user.setImage(userRequest.getImage());
         repository.save(user);
         return GeneralResponse.builder()
                 .message("User updated successfully")
@@ -85,13 +86,26 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public User GetUser(Long id) throws UserNotFoundException {
+    public Object  GetUser(Long id) throws UserNotFoundException {
         var user = repository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         if (user.isDeleted()) {
             throw new UserNotFoundException("User not found");
         }
-
+        if (user.getRole() == Role.DOCTOR) {
+            DoctorDTO doctor = new DoctorDTO();
+            doctor.setSpecialization(user.getDoctor().getSpecialization());
+            doctor.setEndTime(user.getDoctor().getEndTime());
+            doctor.setBeginTime(user.getDoctor().getBeginTime());
+            doctor.setUser(user);
+            return doctor;
+        } else if (user.getRole() == Role.PATIENT) {
+            PatientDTO patient = new PatientDTO();
+            patient.setBloodType(user.getPatient().getBloodType().getType());
+            patient.setAge(user.getPatient().getAge());
+            patient.setUser(user);
+            return patient;
+        }
         return user;
     }
 
@@ -128,6 +142,108 @@ public class AuthenticationService {
         }
         Pageable pageable = PageRequest.of(page - 1, size);
         return repository.findAllByRole(role, pageable);
+    }
+
+    @Transactional
+    public PaginationDTO<User> getAllDeletedUsers(int page, int size, String search, Role role) {
+        if(search != null && search.isEmpty()){
+            search = null;
+        }
+        if(role != null && !EnumSet.allOf(Role.class).contains(role)){
+            role = null;
+        }
+        if (page < 1) {
+            page = 1;
+        }
+        PageRequest pageRequest = PageRequest.of(page - 1, size);
+        Page<User> userPage = repository.findAllDeleted(pageRequest, search, role);
+
+        PaginationDTO<User> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(userPage.getTotalElements());
+        paginationDTO.setTotalPages(userPage.getTotalPages());
+        paginationDTO.setSize(userPage.getSize());
+        paginationDTO.setNumber(userPage.getNumber() + 1);
+        paginationDTO.setNumberOfElements(userPage.getNumberOfElements());
+        paginationDTO.setContent(userPage.getContent());
+
+        return paginationDTO;
+    }
+    public GeneralResponse restoreUser(Long id) throws UserNotFoundException {
+        var user = repository.findDeletedById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setDeleted(false);
+        repository.save(user);
+        return GeneralResponse.builder()
+                .message("User restored successfully")
+                .build();
+    }
+
+    public PaginationDTO<User> findAllDoctors(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+        PageRequest pageRequest = PageRequest.of(page - 1, size);
+        Page<User> doctors = repository.findAllDoctors(pageRequest);
+        PaginationDTO<User> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(doctors.getTotalElements());
+        paginationDTO.setTotalPages(doctors.getTotalPages());
+        paginationDTO.setSize(doctors.getSize());
+        paginationDTO.setNumber(doctors.getNumber() + 1);
+        paginationDTO.setNumberOfElements(doctors.getNumberOfElements());
+        paginationDTO.setContent(doctors.getContent());
+
+        return paginationDTO;
+    }
+
+    public PaginationDTO<User> findAllSecretaries(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+        PageRequest pageRequest = PageRequest.of(page - 1, size);
+        Page<User> secretaries = repository.findAllSecretaries(pageRequest);
+        PaginationDTO<User> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(secretaries.getTotalElements());
+        paginationDTO.setTotalPages(secretaries.getTotalPages());
+        paginationDTO.setSize(secretaries.getSize());
+        paginationDTO.setNumber(secretaries.getNumber() + 1);
+        paginationDTO.setNumberOfElements(secretaries.getNumberOfElements());
+        paginationDTO.setContent(secretaries.getContent());
+
+        return paginationDTO;
+    }
+
+    public PaginationDTO<User> findAllDoctorsUpdated(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+        PageRequest pageRequest = PageRequest.of(page - 1, size);
+        Page<User> doctors = repository.findAllDoctorsUpdated(pageRequest);
+        PaginationDTO<User> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(doctors.getTotalElements());
+        paginationDTO.setTotalPages(doctors.getTotalPages());
+        paginationDTO.setSize(doctors.getSize());
+        paginationDTO.setNumber(doctors.getNumber() + 1);
+        paginationDTO.setNumberOfElements(doctors.getNumberOfElements());
+        paginationDTO.setContent(doctors.getContent());
+
+        return paginationDTO;
+    }
+
+    public PaginationDTO<User> findAllSecretariesUpdated(int page, int size) {
+        if (page < 1) {
+            page = 1;
+        }
+        PageRequest pageRequest = PageRequest.of(page - 1, size);
+        Page<User> secretaries = repository.findAllSecretariesUpdated(pageRequest);
+        PaginationDTO<User> paginationDTO = new PaginationDTO<>();
+        paginationDTO.setTotalElements(secretaries.getTotalElements());
+        paginationDTO.setTotalPages(secretaries.getTotalPages());
+        paginationDTO.setSize(secretaries.getSize());
+        paginationDTO.setNumber(secretaries.getNumber() + 1);
+        paginationDTO.setNumberOfElements(secretaries.getNumberOfElements());
+        paginationDTO.setContent(secretaries.getContent());
+
+        return paginationDTO;
     }
 
     @Transactional
@@ -282,8 +398,8 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public GeneralResponse CheckIn(Long userId,Long madebyUser) throws UserNotFoundException {
-        var user = repository.findById(userId)
+    public GeneralResponse CheckIn(String userId,Long madebyUser) throws UserNotFoundException {
+        var user = repository.findByEmail(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         var madeByUser = repository.findById(madebyUser)
@@ -317,8 +433,8 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public GeneralResponse checkOut(Long userId, Long madebyUser) throws UserNotFoundException {
-        var user = repository.findById(userId)
+    public GeneralResponse checkOut(String userId, Long madebyUser) throws UserNotFoundException {
+        var user = repository.findByEmail(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         var madeByUser = repository.findById(madebyUser)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
