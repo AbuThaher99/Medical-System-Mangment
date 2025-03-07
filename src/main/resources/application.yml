@@ -31,18 +31,22 @@ spring:
     name: ProjectTraninng
   servlet:
     multipart:
-      max-file-size: 10MB
+      max-file-size: 100MB
       enabled: 'true'
-      max-request-size: 10MB
+      max-request-size: 100MB
   datasource:
-    password: '#AbuThaher12345'
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: root
-    url: jdbc:mysql://localhost:3306/MedicalComplexDB
+      url: ${DB_URL}
+      username: ${DB_USERNAME}
+      password: ${DB_PASSWORD}
+      driver-class-name: ${DB_DRIVER}
 logging:
   level:
     com:
       example: DEBUG
     root: INFO
 server:
-  port: '8080'
+  port: ${PORT:8080}
+  spring:
+    resources:
+      cache:
+        period: 0
