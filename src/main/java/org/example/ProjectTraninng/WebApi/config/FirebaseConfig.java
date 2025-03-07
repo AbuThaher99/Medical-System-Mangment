@@ -71,7 +71,8 @@ public class FirebaseConfig {
                                     Cors.Origin.of("http://127.0.0.1:3000"),
                                     Cors.Origin.of("http://localhost:4200"),
                                     Cors.Origin.of("http://127.0.0.1:4200"),
-                                    Cors.Origin.of("https://website-4everbooking-frontend-4b9d04424128.herokuapp.com")
+                                    Cors.Origin.of("https://website-4everbooking-frontend-4b9d04424128.herokuapp.com"),
+                                    Cors.Origin.of("mifical-test.netlify.app")
                             )
                     )
                     .setMethods(Arrays.asList(HttpMethod.GET, HttpMethod.POST, HttpMethod.OPTIONS)) // Correct type
